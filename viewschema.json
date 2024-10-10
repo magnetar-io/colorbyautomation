@@ -4,7 +4,7 @@
       "ViewCombinationName": "Slab vs Duct",
       "CategoriesAndColor": [
         {
-          "Category": "Slabs",
+          "Category": "Floors",
           "ColorCut": {
             "Color": "#FF0000",  // Red
             "Transparency": "50%"
@@ -26,12 +26,6 @@
           }
         }
       ],
-      "FanByTypeName": "N",
-      "FanByProperties": {
-        "Rating": "",
-        "Comment": ""
-      },
-      "FanByLink": "N",
       "IncludeLink": ["STR", "MEP"],
       "ViewRange": {
         "TopOffsetRelativeToLevel": "6",
@@ -81,12 +75,6 @@
           }
         }
       ],
-      "FanByTypeName": "N",
-      "FanByProperties": {
-        "Rating": "N",
-        "Comment": ""
-      },
-      "FanByLink": "N",
       "IncludeLink": ["*"],
       "ViewRange": {
         "TopOffsetRelativeToLevel": "0",
@@ -94,7 +82,9 @@
         "CutPlaneOffsetRelativeToLevel": "48",
         "ViewDepthOffsetRelativeToLevel": "0"
       },
-      "HostLevelsToProcess": "all"
+      "HostLevelsToProcess": [
+        "*"
+      ]
     }
   ]
 }
