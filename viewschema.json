@@ -1,62 +1,100 @@
 {
-    "ViewCombinations": [
-      {
-        "ViewCombinationName": "Slab vs Duct",
-        "CategoriesAndColor": [
-          {
-            "Category": "Slabs",
+  "ViewCombinations": [
+    {
+      "ViewCombinationName": "Slab vs Duct",
+      "CategoriesAndColor": [
+        {
+          "Category": "Slabs",
+          "ColorCut": {
             "Color": "#FF0000",  // Red
             "Transparency": "50%"
           },
-          {
-            "Category": "Ducts",
+          "ColorProjected": {
+            "Color": "#00FFFF",  // Cyan
+            "Transparency": "30%"
+          }
+        },
+        {
+          "Category": "Ducts",
+          "ColorCut": {
             "Color": "#00FF00",  // Green
             "Transparency": "50%"
+          },
+          "ColorProjected": {
+            "Color": "#FFFF00",  // Yellow
+            "Transparency": "20%"
           }
-        ],
-        "FanByTypeName": "Y",
-        "FanByProperties": {
-          "Rating": "Y",
-          "Comment": "Rating, Comment"
-        },
-        "FanByLink": "Y",
-        "ViewRange": {
-          "TopOffsetRelativeToLevel": "6",
-          "BottomOffsetRelativeToLevel": "0",
-          "CutPlaneOffsetRelativeToLevel": "4",
-          "ViewDepthOffsetRelativeToLevel": "12"
-        },
-        "HostLevelsToProcess": [
-          "Level 1","Level 3" ]
+        }
+      ],
+      "FanByTypeName": "N",
+      "FanByProperties": {
+        "Rating": "",
+        "Comment": ""
       },
-      {
-        "ViewCombinationName": "Rated Walls vs Beams",
-        "CategoriesAndColor": [
-          {
-            "Category": "Walls",
+      "FanByLink": "N",
+      "IncludeLink": ["STR", "MEP"],
+      "ViewRange": {
+        "TopOffsetRelativeToLevel": "6",
+        "BottomOffsetRelativeToLevel": "0",
+        "CutPlaneOffsetRelativeToLevel": "4",
+        "ViewDepthOffsetRelativeToLevel": "12"
+      },
+      "HostLevelsToProcess": [
+        "Level 1",
+        "Level 3"
+      ]
+    },
+    {
+      "ViewCombinationName": "Rated Walls vs Beams",
+      "CategoriesAndColor": [
+        {
+          "Category": "Walls",
+          "ColorCut": {
             "Color": "#FF0000",  // Red
             "Transparency": "40%"
           },
-          {
-            "Category": "Beams",
+          "ColorProjected": {
+            "Color": "#FFA500",  // Orange
+            "Transparency": "25%"
+          }
+        },
+        {
+          "Category": "Beams",
+          "ColorCut": {
             "Color": "#00FF00",  // Green
             "Transparency": "40%"
+          },
+          "ColorProjected": {
+            "Color": "#0000FF",  // Blue
+            "Transparency": "15%"
           }
-        ],
-        "FanByTypeName": "N",
-        "FanByProperties": {
-          "Rating": "N",
-          "Comment": ""
         },
-        "FanByLink": "N",
-        "ViewRange": {
-          "TopOffsetRelativeToLevel": "0",
-          "BottomOffsetRelativeToLevel": "96",
-          "CutPlaneOffsetRelativeToLevel": "48",
-          "ViewDepthOffsetRelativeToLevel": "0"
-        },
-        "HostLevelsToProcess": "all"
-      }
-    ]
-  }
-  
+        {
+          "Category": "Floors",  // New category added
+          "ColorCut": {
+            "Color": "#800080",  // Purple
+            "Transparency": "35%"
+          },
+          "ColorProjected": {
+            "Color": "#FFC0CB",  // Pink
+            "Transparency": "20%"
+          }
+        }
+      ],
+      "FanByTypeName": "N",
+      "FanByProperties": {
+        "Rating": "N",
+        "Comment": ""
+      },
+      "FanByLink": "N",
+      "IncludeLink": ["*"],
+      "ViewRange": {
+        "TopOffsetRelativeToLevel": "0",
+        "BottomOffsetRelativeToLevel": "96",
+        "CutPlaneOffsetRelativeToLevel": "48",
+        "ViewDepthOffsetRelativeToLevel": "0"
+      },
+      "HostLevelsToProcess": "all"
+    }
+  ]
+}
