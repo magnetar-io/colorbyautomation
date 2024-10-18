@@ -1,20 +1,18 @@
-# @title Default title text
 import fitz  # PyMuPDF
+import gradio as gr
 import os
+import zipfile
 
 # Helper function to find color areas
 def find_color_areas(page, target_color, tolerance=30):
-    # Render page as a pixmap (image), this will allow us to inspect pixels for colors
     pix = page.get_pixmap()
     width, height = pix.width, pix.height
     visited = [[False for _ in range(width)] for _ in range(height)]
     rectangles = []
 
     def flood_fill(x, y):
-        """Flood fill to find all adjacent pixels of the same color."""
         stack = [(x, y)]
         rects = []
-
         while stack:
             cx, cy = stack.pop()
             if visited[cy][cx]:
@@ -22,30 +20,22 @@ def find_color_areas(page, target_color, tolerance=30):
 
             visited[cy][cx] = True
             pixel_color = pix.pixel(cx, cy)
-            r, g, b = pixel_color[:3]  # Extract RGB values
+            r, g, b = pixel_color[:3]
 
             if (abs(r - target_color[0]) <= tolerance and
                 abs(g - target_color[1]) <= tolerance and
                 abs(b - target_color[2]) <= tolerance):
                 rects.append(fitz.Rect(cx, cy, cx + 1, cy + 1))
-
-                # Add neighbors to stack
-                if cx > 0:
-                    stack.append((cx - 1, cy))
-                if cx < width - 1:
-                    stack.append((cx + 1, cy))
-                if cy > 0:
-                    stack.append((cx, cy - 1))
-                if cy < height - 1:
-                    stack.append((cx, cy + 1))
+                if cx > 0: stack.append((cx - 1, cy))
+                if cx < width - 1: stack.append((cx + 1, cy))
+                if cy > 0: stack.append((cx, cy - 1))
+                if cy < height - 1: stack.append((cx, cy + 1))
 
         if rects:
-            # Merge all small rectangles into one bounding box (no buffer)
             bbox = fitz.Rect(min([r.x0 for r in rects]),
                              min([r.y0 for r in rects]),
                              max([r.x1 for r in rects]),
                              max([r.y1 for r in rects]))
-
             return bbox
         return None
 
@@ -55,24 +45,17 @@ def find_color_areas(page, target_color, tolerance=30):
                 bbox = flood_fill(x, y)
                 if bbox:
                     rectangles.append(bbox)
-
     return rectangles
 
-# Helper function to merge overlapping rectangles
 def merge_overlapping_rectangles(rectangles):
-    """Merge rectangles that overlap each other."""
     merged_rects = []
-
     while rectangles:
         rect = rectangles.pop(0)
         to_merge = [rect]
-
         for other in rectangles[:]:
-            if rect.intersects(other):  # Check for overlap
+            if rect.intersects(other):
                 to_merge.append(other)
                 rectangles.remove(other)
-
-        # Merge all rectangles in the 'to_merge' list
         merged_rect = fitz.Rect(
             min([r.x0 for r in to_merge]),
             min([r.y0 for r in to_merge]),
@@ -80,64 +63,96 @@ def merge_overlapping_rectangles(rectangles):
             max([r.y1 for r in to_merge])
         )
         merged_rects.append(merged_rect)
-
     return merged_rects
 
-# Function to markup the PDF with rectangles and annotations for multiple colors
-def markup_color_regions(input_pdf_path, color_comment_pairs, output_pdf_path, tolerance=30):
-    # Open the PDF
-    doc = fitz.open(input_pdf_path)
+def markup_color_regions(doc, color_comment_pair, tolerance=30):
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        target_color = color_comment_pair['color']
+        comment = color_comment_pair['comment']
+        stroke_color = color_comment_pair['stroke_color']
 
-    # Process the first page
-    page = doc[0]
-
-    for color_info in color_comment_pairs:
-        target_color = color_info['color']
-        comment = color_info['comment']
-        stroke_color = color_info['stroke_color']
-
-        # Find all regions matching the color
         rectangles = find_color_areas(page, target_color, tolerance)
-
         if rectangles:
-            # Merge overlapping rectangles
             merged_rectangles = merge_overlapping_rectangles(rectangles)
-
             for bbox in merged_rectangles:
-                # Add a rectangular annotation (with comment) around each found area
-                annot = page.add_rect_annot(bbox)  # Create a rectangle annotation
-                annot.set_colors(stroke=stroke_color)  # Set stroke color
-                annot.set_border(width=2)  # Set the border width to 2pt
+                annot = page.add_rect_annot(bbox)
+                annot.set_colors(stroke=stroke_color)
+                annot.set_border(width=2)
                 annot.set_info({"title": "Markup", "content": comment})
                 annot.update()
 
-    # Save the modified PDF to a different file to avoid overwrite
-    if input_pdf_path == output_pdf_path:
-        output_pdf_path = input_pdf_path.replace('.pdf', '_modified.pdf')
-
-    doc.save(output_pdf_path)
-    doc.close()
-    print(f"PDF saved with markup and comments at: {output_pdf_path}")
-
-# Main function
-if __name__ == "__main__":
-    # Specify input and output PDF paths
-    input_pdf = "/content/LEVEL 01 - Color Coordiation Floors-.pdf"  # Input PDF path
-    output_pdf = os.path.join(os.path.dirname(input_pdf), "Slab vs Slab.pdf")  # Output PDF path
-
-    # Define the colors and corresponding comments
+def process_pdf_files(input_pdfs, color_comment_option, tolerance, custom_color, custom_comment, custom_stroke_color):
     color_comment_pairs = [
         {
-            "color": (235, 128, 138),  # Target color (RGB)
-            "comment": "Structural Slab greater than architectural slab",  # Comment
-            "stroke_color": (1, 0, 0)  # Red stroke color
+            "color": (235, 128, 138),
+            "comment": "Structural Slab greater than architectural slab",
+            "stroke_color": (1, 0, 0)
         },
         {
-            "color": (128, 253, 128),  # Second target color (RGB)
-            "comment": "Arch Slab greater then Structure",  # Second comment
-            "stroke_color": (0, 1, 0)  # Green stroke color
+            "color": (128, 253, 128),
+            "comment": "Arch Slab greater than Structure",
+            "stroke_color": (0, 1, 0)
         }
     ]
+    
+    # Add custom color-comment pair if provided
+    if custom_color and custom_comment and custom_stroke_color:
+        custom_color_tuple = tuple(map(int, custom_color.split(',')))  # Convert color to tuple
+        custom_stroke_tuple = tuple(map(int, custom_stroke_color.split(',')))  # Convert stroke to tuple
+        color_comment_pairs.append({
+            "color": custom_color_tuple,
+            "comment": custom_comment,
+            "stroke_color": custom_stroke_tuple
+        })
 
-    # Call the function to markup the regions with multiple colors and comments
-    markup_color_regions(input_pdf, color_comment_pairs, output_pdf, tolerance=30)
+    # Check if the option is valid
+    if isinstance(color_comment_option, int) and 0 <= color_comment_option < len(color_comment_pairs):
+        selected_color_comment = color_comment_pairs[color_comment_option]
+    else:
+        raise ValueError("Invalid selection for color-comment pair")
+
+    # Create a directory to store the modified PDFs
+    output_dir = "modified_pdfs"
+    os.makedirs(output_dir, exist_ok=True)
+
+    # List to keep track of all modified PDF file paths
+    modified_files = []
+
+    # Process each input PDF file
+    for pdf_file in input_pdfs:
+        with open(pdf_file.name, "rb") as file_stream:
+            doc = fitz.open(stream=file_stream.read(), filetype="pdf")
+            markup_color_regions(doc, selected_color_comment, tolerance)
+
+            # Save the modified PDF
+            output_pdf_path = os.path.join(output_dir, os.path.basename(pdf_file.name))
+            doc.save(output_pdf_path)
+            doc.close()
+            modified_files.append(output_pdf_path)
+
+    # Create a zip file containing all modified PDFs
+    zip_filename = "modified_pdfs.zip"
+    with zipfile.ZipFile(zip_filename, 'w') as zipf:
+        for file in modified_files:
+            zipf.write(file, os.path.basename(file))
+    
+    return zip_filename
+
+# Define the Gradio interface
+interface = gr.Interface(
+    fn=process_pdf_files,
+    inputs=[
+        gr.Files(label="Input PDF Files", file_types=[".pdf"]),
+        gr.Dropdown(label="Color-Comment Pair", choices=["Structural Slab vs Arch Slab", "Arch Slab vs Structural Slab", "Custom Option"], type="index"),
+        gr.Slider(label="Tolerance", minimum=0, maximum=100, step=1, value=30),
+        gr.Textbox(label="Custom Color (R,G,B)", placeholder="Enter custom color in RGB format, e.g., 255,0,0"),
+        gr.Textbox(label="Custom Comment", placeholder="Enter custom comment for this color"),
+        gr.Textbox(label="Custom Stroke Color (R,G,B)", placeholder="Enter stroke color in RGB format, e.g., 0,0,255")
+    ],
+    outputs=gr.File(label="Download Modified PDFs as ZIP"),
+    title="PDF Color Region Markup"
+)
+
+# Launch the Gradio app
+interface.launch()
